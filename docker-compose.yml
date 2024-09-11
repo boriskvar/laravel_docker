@@ -17,6 +17,9 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 55555
+      MYSQL_DATABASE: comments
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 55555
     volumes:
       - ./docker/volumes/mysql:/var/lib/mysql
   phpmyadmin:
