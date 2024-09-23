@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Comment;
 
 class HomeController extends Controller
@@ -14,7 +13,7 @@ class HomeController extends Controller
      */
     public function index()
     {
-        return view('home'); // Это загружает 'resources/views/home.blade.php'
+        return view('home');
     }
 
     /**
@@ -28,5 +27,3 @@ class HomeController extends Controller
         return response()->json($comments);
     }
 }
-
-

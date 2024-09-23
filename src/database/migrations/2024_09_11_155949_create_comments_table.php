@@ -13,16 +13,26 @@ return new class extends Migration
     {
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('parent_id')->nullable(); // Внешний ключ на родительский комментарий
             $table->string('user_name');
-            $table->string('avatar')->nullable();
             $table->string('email');
             $table->string('home_page')->nullable();
             $table->string('captcha')->nullable();
             $table->text('text');
-            $table->string('file_path')->nullable();
-            $table->integer('rating')->nullable();
-            $table->text('quote')->nullable();
             $table->timestamps();
+            $table->string('avatar')->nullable();
+            $table->string('file_path')->nullable(); // Поле для пути к файлу
+            $table->text('quote')->nullable(); // Поле для цитаты
+            $table->integer('rating')->default(0); // Поле для рейтинга
+
+            // Индекс для быстрого поиска по parent_id
+            $table->index('parent_id');
+
+            // Добавляем внешний ключ
+            $table->foreign('parent_id')
+                  ->references('id')
+                  ->on('comments')
+                  ->onDelete('cascade');
         });
     }
 
@@ -31,6 +41,18 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('comments', function (Blueprint $table) {
+            // Удаление внешнего ключа
+            $table->dropForeign(['parent_id']);
+
+            // Удаление индекса
+            $table->dropIndex(['parent_id']);
+
+            // Удаление столбцов
+            $table->dropColumn('rating');
+            $table->dropColumn('quote');
+        });
+
         Schema::dropIfExists('comments');
     }
 };

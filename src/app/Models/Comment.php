@@ -15,7 +15,7 @@ class Comment extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-
+        'parent_id',
         'user_name',
         'avatar',
         'email',
@@ -24,7 +24,6 @@ class Comment extends Model
         'text',
         'rating',
         'quote',
-        'file_path',
     ];
 
     /**
@@ -39,19 +38,18 @@ class Comment extends Model
 
     /**
      * Set the comment's text, stripping unwanted tags.
-     * Очищаем текст от нежелательных тегов HTML
+     *
      * @param  string  $value
      * @return void
      */
-
-     public function setTextAttribute($value)
+    public function setTextAttribute($value)
     {
         $this->attributes['text'] = strip_tags($value, '<a><code><i><strong>');
     }
 
     /**
      * Set the comment's user name, removing non-alphanumeric characters.
-     * Удаляет неалфавитные символы из имени пользователя
+     *
      * @param  string  $value
      * @return void
      */
@@ -62,7 +60,7 @@ class Comment extends Model
 
     /**
      * Set the comment's home page URL.
-     * Проверяет, является ли URL допустимым
+     *
      * @param  string  $value
      * @return void
      */
@@ -73,7 +71,7 @@ class Comment extends Model
 
     /**
      * Set the comment's email address.
-     * Проверяет, является ли email допустимым
+     *
      * @param  string  $value
      * @return void
      */
@@ -84,15 +82,21 @@ class Comment extends Model
 
     /**
      * Get the comment's replies.
-     * устанавливает связь один ко многим между комментариями и ответами
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function replies()
     {
-        return $this->hasMany(Reply::class, 'comment_id');
+        return $this->hasMany(Comment::class, 'parent_id')->with('replies'); //Добавлено ->with('replies'), чтобы рекурсивно загружать все вложенные ответы.
     }
 
-
+    /**
+     * Get the parent comment.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function parent()
+    {
+        return $this->belongsTo(Comment::class, 'parent_id');
+    }
 }
-
-
