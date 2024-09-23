@@ -48,7 +48,7 @@
 
       const fetchComments = async () => {
         try {
-          const response = await fetch('https://spa-comments/api/comments');
+          const response = await fetch('http://localhost/api/comments');
           if (!response.ok) {
             throw new Error(`Error fetching comments: ${response.status} ${response.statusText}`);
           }

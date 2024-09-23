@@ -107,7 +107,7 @@ export default {
     avatarUrl() {
       // Формируем правильный путь к аватару
       // Проверяем, существует ли avatar, чтобы избежать ошибок
-      return this.avatar ? `https://spa-comments/${this.avatar}` : 'default-avatar.png';
+      return this.avatar ? `http://localhost/${this.avatar}` : 'default-avatar.png';
     },
     formattedDate() {
       const date = new Date(this.timestamp);
