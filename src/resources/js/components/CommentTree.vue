@@ -1,258 +1,238 @@
 <template>
-    <div>
-      <div v-for="comment in comments" :key="comment.id" :style="{ marginLeft: calculateIndentLevel(comment) + 'px' }">
-        <div>
-          <img :src="getAvatarUrl(comment.user_name)" @error="handleAvatarError" class="avatar"/>
-          <strong>{{ comment.user_name }}</strong>
-          <p v-html="comment.text"></p>
-          <small>{{ formatDate(comment.created_at) }}</small>
-          <button @click="toggleReplyForm(comment.id)">Reply</button>
-        </div>
+  <div>
+    <div class="comment" :class="{ reply: type === 'reply' }">
+      <header>
 
-        <!-- Форма ответа -->
-        <div v-if="activeReplyForm === comment.id">
-          <form @submit.prevent="submitReply(comment)">
-            <!-- Поля формы -->
-            <div>
-              <label for="user_name">User Name:</label>
-              <input type="text" id="user_name" v-model="user_name" required />
-            </div>
+        <img :src="avatarUrl" alt="Avatar" class="comment-avatar" />
 
-            <div>
-              <label for="avatar">Avatar URL:</label>
-              <input
-                type="text"
-                id="avatar"
-                v-model="avatar"
-                placeholder="images/avatars/Your Name.png"
-              />
-            </div>
-
-            <div>
-              <label for="email">E-mail:</label>
-              <input type="email" id="email" v-model="email" required />
-            </div>
-
-            <div>
-              <label for="home_page">Home page (optional):</label>
-              <input
-                type="url"
-                id="home_page"
-                v-model="home_page"
-                placeholder="https://example.com"
-              />
-            </div>
-
-            <div>
-              <label for="text">Text:</label>
-              <textarea id="text" v-model="replyText" required></textarea>
-            </div>
-
-            <!-- Поле для загрузки файла -->
-            <div>
-              <label for="fileInput">Attach file (optional):</label>
-              <input
-                type="file"
-                id="fileInput"
-                @change="handleFileChange"
-                accept=".jpg, .jpeg, .png, .gif, .txt"
-              />
-            </div>
-
-            <div class="captcha">
-              <input v-model="captchaInput" placeholder="Enter captcha" required />
-            </div>
-
-            <button type="submit">Submit</button>
-            <button @click="toggleReplyForm(null)">Cancel</button>
-          </form>
-        </div>
-
-        <!-- Рекурсивное отображение дочерних комментариев -->
-        <comment-tree
-          v-if="comment.replies"
-          :comments="comment.replies"
-          :level="level + 1"
-          @reply-added="$emit('reply-added', $event)"
-        ></comment-tree>
+        <h3 class="comment-name">{{ author }}</h3>
+        <span class="comment-date">{{ formattedDate }}</span>
+        <span v-html="icon" class="comment-icon"></span>
+      </header>
+      <div v-html="body" class="comment-body" />
+      <button @click="showReplyInput = !showReplyInput" class="reply-button">
+        Reply
+      </button>
+      <div v-if="showReplyInput" class="reply-input">
+        <img :src="avatarPreview || avatarUrl" alt="Avatar" class="reply-avatar" />
+        <input type="file" @change="onFileChange" />
+        <textarea v-model="replyName" placeholder="Enter your name..."></textarea>
+        <textarea v-model="replyBody" placeholder="Enter your reply..."></textarea>
+        <button @click="submitReply">Submit</button>
       </div>
     </div>
-  </template>
+    <div v-if="replies.length" class="comment-replies">
+      <Comment
+        v-for="reply in replies"
+        :key="reply.id"
+        v-bind="reply"
+        type="reply"
+      />
+    </div>
+  </div>
+</template>
 
-  <script>
-  export default {
-    props: {
-      comments: Array,
-      level: {
-        type: Number,
-        default: 0,
-      },
+<script>
+export default {
+  name: "Comment",
+  props: {
+    author: { type: String, required: true },
+    body: { type: String, required: true },
+    timestamp: { type: String, required: true },
+    replies: { type: Array, required: true, default: () => [] }, // Добавлено значение по умолчанию
+    type: { type: String, required: false, default: "comment" },
+    id: { type: Number, required: true }, // Убедитесь, что ID обязательный
+    avatar: { type: String, required: true }, // Добавлено свойство для аватара
+  },
+  data() {
+    return {
+      showReplyInput: false,
+      replyBody: "",
+      replyName: "",
+      selectedFile: null, // Для хранения выбранного файла
+      avatarPreview: null, // Для предварительного просмотра аватара
+
+    };
+  },
+  methods: {
+    onFileChange(event) {
+      this.selectedFile = event.target.files[0];
+      if (this.selectedFile) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.avatarPreview = e.target.result; // Предварительный просмотр
+        };
+        reader.readAsDataURL(this.selectedFile);
+      }
     },
-    data() {
-      return {
-        activeReplyForm: null,
-        user_name: "",
-        avatar: "",
-        email: "",
-        home_page: "",
-        replyText: "",
-        captchaInput: "",
-        file: null, // Сохраняем файл
-      };
-    },
-    methods: {
-      calculateIndentLevel(comment) {
-        return (this.level || 0) * 20;
-      },
-      getAvatarUrl(userName) {
-        return `/images/avatars/${userName}.png`;
-      },
-      handleAvatarError(event) {
-        event.target.src = "/images/avatars/default.png";
-      },
-      formatDate(date) {
-        return new Date(date).toLocaleString();
-      },
-      toggleReplyForm(commentId) {
-        this.activeReplyForm = this.activeReplyForm === commentId ? null : commentId;
-      },
-      handleFileChange(event) {
-        this.file = event.target.files[0]; // Сохраняем файл в data
-      },
-      async submitReply(parentComment) {
-        if (this.validateReply()) {
-          const formData = new FormData();
-          formData.append("user_name", this.user_name);
-          formData.append("avatar", this.avatar);
-          formData.append("email", this.email);
-          formData.append("home_page", this.home_page);
-          formData.append("text", this.replyText);
-          formData.append("captcha", this.captchaInput);
-          if (this.file) {
-            formData.append("file", this.file); // Добавляем файл в formData
-          }
+    async submitReply() {
+      if (!this.replyBody.trim()) {
+        console.warn("Reply cannot be empty.");
+        return;
+      }
 
-          try {
-            const response = await fetch(`/api/comments/${parentComment.id}/replies`, {
-              method: "POST",
-              body: formData,
-            });
+      try {
+        const formData = new FormData();
+        formData.append("text", this.replyBody);
+        formData.append("user_name", this.replyName);
 
-            if (response.ok) {
-              const data = await response.json();
-              this.$emit('reply-added', { parentId: parentComment.id, newReply: data });
-              this.resetReplyForm();
-            } else {
-              const errorData = await response.json();
-              throw new Error(errorData.message || response.statusText);
-            }
-          } catch (error) {
-            console.error("Error submitting reply:", error);
-          }
-        } else {
-          alert("Please fill in all required fields");
+        if (this.selectedFile) {
+          formData.append("avatar", this.selectedFile); // Добавляем аватар, если загружен
         }
-      },
-      validateReply() {
-        return (
-          this.user_name.trim() !== "" &&
-          this.email.trim() !== "" &&
-          this.replyText.trim() !== "" &&
-          this.captchaInput.trim() !== ""
-        );
-      },
-      resetReplyForm() {
-        this.user_name = "";
-        this.avatar = "";
-        this.email = "";
-        this.home_page = "";
-        this.replyText = "";
-        this.captchaInput = "";
-        this.file = null;
-        this.activeReplyForm = null;
-      },
+
+        const response = await fetch(`/api/comments/${this.id}/replies`, {
+          method: "POST",
+          body: formData, // Используем FormData для отправки формы
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          throw new Error("Failed to submit reply");
+        }
+
+        const newReply = await response.json(); // Получаем JSON-ответ
+        this.replies.push(newReply);
+        this.replyBody = "";
+        this.replyName = ""; // очищаем поле имени
+        this.selectedFile = null;
+        this.avatarPreview = null;
+        this.showReplyInput = false;
+      } catch (error) {
+        console.error("Error submitting reply:", error);
+      }
     },
-  };
-  </script>
+  },
+  computed: {
+    avatarUrl() {
+      // Формируем правильный путь к аватару
+      // Проверяем, существует ли avatar, чтобы избежать ошибок
+      return this.avatar ? `https://spa-comments/${this.avatar}` : 'default-avatar.png';
+    },
+    formattedDate() {
+      const date = new Date(this.timestamp);
+      return (
+        date.toLocaleDateString("ru-RU") +
+        " в " +
+        date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+      );
+    },
+    icon() {
+      const commentIcon = `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>`;
+      const replyIcon = `<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>`;
 
-<style scoped>
-/* Стили для панели инструментов */
-.toolbar {
-  margin-bottom: 10px;
+      return this.type === "reply" ? replyIcon : commentIcon;
+    },
+  },
+};
+</script>
+
+<style lang="css" scoped>
+.reply-avatar {
+  width: 30px; /* Установи нужный размер для аватара в ответе */
+  height: 30px;
+  border-radius: 50%; /* Чтобы сделать его круглым */
+  margin-right: 10px; /* Отступ справа */
 }
 
-.toolbar button {
-  margin-right: 5px;
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
 }
 
-.reply-form textarea {
-  width: 100%;
-  height: 100px;
+button {
+  background-color: DodgerBlue;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-.comment-tree {
-  /* Основные стили для дерева комментариев */
-  font-family: Arial, sans-serif;
-  line-height: 1.5;
+button:hover {
+  background-color: RoyalBlue;
 }
 
-.comment-item {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 10px;
+.comment {
+  border: 1px solid DodgerBlue;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1.5rem;
 }
 
-.comment-header {
-  display: flex;
+.comment.reply {
+  position: relative;
+}
+
+.comment.reply:before {
+  background-color: Silver;
+  content: "";
+  height: 1px;
+  left: -2.5rem;
+  position: absolute;
+  top: 50%;
+  width: 0.75rem;
+}
+
+h3,
+p {
+  margin: 0;
+}
+
+header {
   align-items: center;
-  margin-bottom: 5px;
+  display: flex;
+  margin-bottom: 0.75rem;
 }
 
-.avatar {
-  width: 40px; /* Размер аватара */
-  height: 40px; /* Высота аватара */
-  border-radius: 50%; /* Округление аватара для круглой формы */
-  object-fit: cover; /* Обрезка изображения, чтобы оно не искажалось */
-  margin-right: 10px; /* Отступ между аватаром и текстом */
+svg {
+  fill: SlateGray;
 }
 
-.author {
-  font-weight: bold;
-  margin-right: 5px;
+.comment-body {
+  margin-bottom: 0.375rem;
 }
 
-.date-time {
-  color: #888;
-  font-size: 0.9em;
+.timestamp {
+  color: DimGray;
+  font-size: 0.8rem;
+  margin-left: 30px;
 }
 
-.comment-text {
-  margin: 10px 0;
+.comment-replies {
+  padding-left: 3.5rem;
+  position: relative;
 }
 
-.reply-form,
-.reply-to-reply-form {
-  margin-top: 10px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+.comment-replies:before {
+  background-color: SlateGray;
+  content: "";
+  height: calc(100% + 1rem);
+  left: 1rem;
+  position: absolute;
+  top: 0;
+  width: 1px;
 }
 
-.reply-button,
-.reply-to-reply-button {
-  margin-top: 10px;
+.comment-replies:last-child:before {
+  height: calc(100% - 1rem);
 }
 
-.replies {
-  margin-top: 10px;
+.comment-name {
+  margin-right: 30px;
 }
 
-/* Стили для вложенных комментариев */
-.comment-item.nested {
-  border-left: 2px solid #ccc;
+.comment-date {
+  color: DimGray;
+  font-size: 0.8rem;
+  margin-right: 30px;
 }
 
-.comment-item:not(.nested) {
-  padding-left: 0;
+.comment-icon {
+  margin-left: auto;
 }
 </style>

@@ -7,9 +7,9 @@
     @vite('resources/css/app.css')
 </head>
 <body>
-    <div id="app">
-        @yield('content')
-    </div>
-    @vite('resources/js/app.js')
+
+    @yield('content')
+
+    @vite('resources/js/main.js')
 </body>
 </html>
