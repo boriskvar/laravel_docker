@@ -1,6 +1,7 @@
 <template>
     <div v-if="isFormVisible">
       <form id="commentForm" @submit.prevent="submitComment" method="post">
+        <input type="hidden" name="rating" value="0">
         <div>
           <label for="user_name">User Name:</label>
           <input
@@ -139,7 +140,7 @@
           if (file_path.value) formData.append("file_path", file_path.value); // Обновлено на 'file_path'
 
           try {
-            const response = await fetch("/api/comments", {
+            const response = await fetch("http://localhost/api/comments", {
               method: "POST",
               body: formData,
             });
@@ -150,8 +151,9 @@
                 `Failed to add comment: ${errorData.message || "Unknown error"}`
               );
             }
-
+            // Если запрос успешен, парсим и логируем ответ
             const data = await response.json();
+            console.log("Комментарий успешно добавлен:", data);
 
             // Очистка формы
             user_name.value = "";

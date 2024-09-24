@@ -39,15 +39,19 @@ class CommentController extends Controller
             'file_path' => 'nullable|file|mimes:jpg,jpeg,png,gif,txt',
         ]);
 
-        $avatarPath = null;
-        if ($request->hasFile('avatar')) {
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-        }
+    // Сохраняем аватар напрямую в public/avatars
+    // Метод public_path() используется для указания директории в папке public, куда нужно сохранить файл
+    $avatarPath = null;
+    if ($request->hasFile('avatar')) {
+        $avatarPath = $request->file('avatar')->move(public_path('avatars'), $request->file('avatar')->getClientOriginalName());
+    }
 
-        $filePath = null;
-        if ($request->hasFile('file_path')) {
-            $filePath = $request->file('file_path')->store('files', 'public');
-        }
+    // Сохраняем файл напрямую в public/files
+    // Мы используем метод move() для сохранения файлов непосредственно в папку public вместо метода store(), который сохраняет файлы в папку storage.
+    $filePath = null;
+    if ($request->hasFile('file_path')) {
+        $filePath = $request->file('file_path')->move(public_path('files'), $request->file('file_path')->getClientOriginalName());
+    }
 
         $comment = new Comment();
         $comment->parent_id = $validated['parent_id'] ?? null;
@@ -56,15 +60,18 @@ class CommentController extends Controller
         $comment->text = $validated['text'];
         $comment->home_page = $validated['home_page'] ?? null;
         $comment->captcha = $validated['captcha'];
-        $comment->rating = $validated['rating'] ?? null;
+        //$comment->rating = $validated['rating'] ?? null;
+        $comment->rating = $validated['rating'] ?? 0;
         $comment->quote = $validated['quote'] ?? null;
-        $comment->avatar = $avatarPath ? str_replace('public/', '', $avatarPath) : null; // Убираем 'public/' из пути
-        $comment->file_path = $filePath ? str_replace('public/', '', $filePath) : null; // Убираем 'public/' из пути
+
+        $comment->avatar = $avatarPath ? "avatars/{$request->file('avatar')->getClientOriginalName()}" : null;
+        $comment->file_path = $filePath ? "files/{$request->file('file_path')->getClientOriginalName()}" : null;
+
         $comment->save();
 
         // Формируем URL для аватара и файла
-        $comment->avatarUrl = $comment->avatar ? "/storage/{$comment->avatar}" : null;
-        $comment->fileUrl = $comment->file_path ? "/storage/{$comment->file_path}" : null;
+        $comment->avatarUrl = $comment->avatar ? "avatars/{$request->file('avatar')->getClientOriginalName()}" : null;
+        $comment->fileUrl = $comment->file_path ? "files/{$request->file('file_path')->getClientOriginalName()}" : null;
 
 
         return response()->json($comment, 201);

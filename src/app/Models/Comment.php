@@ -25,6 +25,7 @@ class Comment extends Model
         'rating',
         'quote',
     ];
+    protected $table = 'comments'; // Имя таблицы в базе данных
 
     /**
      * The attributes that should be cast to native types.
