@@ -24,6 +24,7 @@ class CommentController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
+
     public function create(Request $request)
     {
         $validated = $request->validate([
@@ -39,19 +40,19 @@ class CommentController extends Controller
             'file_path' => 'nullable|file|mimes:jpg,jpeg,png,gif,txt',
         ]);
 
-    // Сохраняем аватар напрямую в public/avatars
-    // Метод public_path() используется для указания директории в папке public, куда нужно сохранить файл
-    $avatarPath = null;
-    if ($request->hasFile('avatar')) {
-        $avatarPath = $request->file('avatar')->move(public_path('avatars'), $request->file('avatar')->getClientOriginalName());
-    }
+        // Сохраняем аватар напрямую в public/avatars
+        // Метод public_path() используется для указания директории в папке public, куда нужно сохранить файл
+        $avatarPath = null;
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->move(public_path('avatars'), $request->file('avatar')->getClientOriginalName());
+        }
 
-    // Сохраняем файл напрямую в public/files
-    // Мы используем метод move() для сохранения файлов непосредственно в папку public вместо метода store(), который сохраняет файлы в папку storage.
-    $filePath = null;
-    if ($request->hasFile('file_path')) {
-        $filePath = $request->file('file_path')->move(public_path('files'), $request->file('file_path')->getClientOriginalName());
-    }
+        // Сохраняем файл напрямую в public/files
+        // Мы используем метод move() для сохранения файлов непосредственно в папку public вместо метода store(), который сохраняет файлы в папку storage.
+        $filePath = null;
+        if ($request->hasFile('file_path')) {
+            $filePath = $request->file('file_path')->move(public_path('files'), $request->file('file_path')->getClientOriginalName());
+        }
 
         $comment = new Comment();
         $comment->parent_id = $validated['parent_id'] ?? null;
@@ -76,5 +77,40 @@ class CommentController extends Controller
 
         return response()->json($comment, 201);
     }
+    public function replies(Comment $comment)
+    {
+        $replies = $comment->replies;
+        return response()->json($replies);
+    }
 
+    public function createReply(Request $request, Comment $comment)
+    {
+        $validated = $request->validate([
+            'user_name' => 'required|string|max:255',
+            'text' => 'required|string',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+        ]);
+
+        // Сохраняем аватар напрямую в public/avatars
+        $avatarPath = null;
+        if ($request->hasFile('avatar')) {
+            $avatarPath = $request->file('avatar')->move(public_path('avatars'), $request->file('avatar')->getClientOriginalName());
+        } // Закрывающая скобка добавлена здесь
+
+        $reply = $comment->replies()->create([
+            'user_name' => $validated['user_name'],
+            'avatar' => $avatarPath ? "avatars/{$request->file('avatar')->getClientOriginalName()}" : null,
+            'text' => $validated['text'],
+            'parent_id' => $comment->id,
+            // Другие необходимые поля, такие как user_id, можно добавить по мере необходимости
+        ]);
+
+        // Формируем URL для аватара
+        $reply->avatarUrl = $reply->avatar ? "avatars/{$request->file('avatar')->getClientOriginalName()}" : null;
+
+        // Загрузите вложенные ответы
+        $reply->load('replies');
+
+        return response()->json($reply, 201); // Возвращаем только что созданный ответ
+    }
 }

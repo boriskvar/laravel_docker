@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('parent_id')->nullable(); // Внешний ключ на родительский комментарий
             $table->string('user_name');
-            $table->string('email');
+            $table->string('email')->nullable();
             $table->string('home_page')->nullable();
             $table->string('captcha')->nullable();
             $table->text('text');
