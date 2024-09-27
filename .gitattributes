@@ -1,0 +1,15 @@
+# Управление окончаниями строк: LF для всех файлов
+* text=auto eol=lf
+
+# Определение типов файлов для правильного отображения diff
+*.blade.php diff=html
+*.css diff=css
+*.html diff=html
+*.md diff=markdown
+*.php diff=php
+
+# Исключение файлов при экспорте (например, при создании архивов)
+.github export-ignore
+CHANGELOG.md export-ignore
+.styleci.yml export-ignore
+

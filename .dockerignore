@@ -1,0 +1,8 @@
+node_modules
+vendor
+.git
+.env
+*.log
+*.tmp
+.DS_Store  # для MacOS
+docker/volumes/mysql/mysql.sock
