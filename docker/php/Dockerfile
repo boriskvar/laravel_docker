@@ -16,9 +16,6 @@ RUN apt-get -y update && apt-get upgrade -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка Xdebug
-RUN pecl install xdebug-3.2.0 && docker-php-ext-enable xdebug
-
 # Установка Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 RUN chmod +x /usr/local/bin/composer
@@ -33,7 +30,6 @@ COPY src/composer.json src/composer.lock ./
 RUN composer install --no-dev --optimize-autoloader
 
 # Копирование конфигурационных файлов
-COPY docker/php/conf.d/* $PHP_INI_DIR/conf.d/
 COPY docker/nginx/conf.d/ /etc/nginx/conf.d/
 
 # Указание пути для Xdebug
