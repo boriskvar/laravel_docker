@@ -18,5 +18,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-docker/volumes/mysql/mysql.sock
+docker/volume/mysql/mysql.sock
 docker/volumes/mysql/

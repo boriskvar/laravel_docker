@@ -19,4 +19,4 @@ yarn-error.log
 /.idea
 /.vscode
 docker/volumes/mysql/
-docker/volumes/mysql/mysql.sock
+
