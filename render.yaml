@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: laravel-docker-app
+    env: docker
+    plan: free
+    repo: https://github.com/boriskvar/laravel_docker
+    branch: main
+    dockerfilePath: ./docker/php/Dockerfile
+    buildCommand: ""
+    startCommand: ""
