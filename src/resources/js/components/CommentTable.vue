@@ -16,7 +16,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="comment in sortedComments" :key="comment.id">
+          <tr v-for="comment in comments" :key="comment.id">
             <td>{{ comment.user_name }}</td>
             <td>{{ comment.email }}</td>
             <td>{{ formatDate(comment.created_at) }}</td>
@@ -30,6 +30,7 @@
 
       <!-- Пагинация -->
       <Pagination
+        v-if="totalPages > 1"
         :total-pages="totalPages"
         :current-page="page"
         @page-changed="fetchComments"
@@ -38,23 +39,23 @@
   </template>
 
   <script setup>
-  import { ref, computed, onMounted } from 'vue';
-  import Pagination from './Pagination.vue';
+  import { ref, onMounted } from 'vue';
+  import Pagination from './Pagination.vue'; // Импортируем компонент пагинации
 
-  const API_URL = 'http://localhost/api/comments'; // URL API
+  const API_URL = 'https://spa-comments/api/comments'; // URL API
 
-  // Состояние для комментариев и сортировки
+  // Состояние для комментариев, сортировки и пагинации
   const comments = ref([]);
   const sortKey = ref('created_at');
   const sortOrder = ref('desc');
   const page = ref(1);
   const totalPages = ref(1);
 
-  // Функция для получения комментариев
+  // Функция для получения комментариев с сортировкой и пагинацией
   const fetchComments = async (pageNum = 1) => {
     page.value = pageNum;
     try {
-      const response = await fetch(`${API_URL}?page=${pageNum}&sort=${sortKey.value}&order=${sortOrder.value}`);
+      const response = await fetch(`${API_URL}?page=${pageNum}&per_page=1&sort=${sortKey.value}&order=${sortOrder.value}`);
       if (!response.ok) {
         throw new Error('Network response was not ok.');
       }
@@ -62,25 +63,33 @@
       const data = await response.json();
       console.log('API Response:', data); // Проверяем формат данных
 
-      // Ожидаем, что ответ содержит массив комментариев
-      if (Array.isArray(data)) {
-        comments.value = data;
-        totalPages.value = calculateTotalPages(data.length); // Пример вычисления общего числа страниц
-      } else {
-        console.error('Unexpected response format:', data);
-      }
+      comments.value = transformComments(data.data); // Обрабатываем данные
+      totalPages.value = data.last_page; // Общее количество страниц
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
   };
 
-  // Пример функции для вычисления общего числа страниц
-  const calculateTotalPages = (totalItems) => {
-    // Замените это значением по умолчанию или логикой расчета
-    return Math.ceil(totalItems / 10); // Если, например, 10 комментариев на страницу
+  // Функция для преобразования комментариев
+  const transformComments = (data) => {
+    if (!Array.isArray(data)) {
+      console.error('Data is not an array:', data);
+      return [];
+    }
+    return data.map(comment => ({
+      id: comment.id,
+      user_name: comment.user_name,
+      email: comment.email,
+      home_page: comment.home_page,
+      captcha: comment.captcha,
+      text: comment.text,
+      created_at: comment.created_at,
+      replies: comment.replies ? transformComments(comment.replies) : [], // Рекурсивно обрабатываем вложенные комментарии, если они есть
+      avatar: comment.avatar ? `/storage/${comment.avatar}` : 'default-avatar.png', // Убедитесь, что путь правильный
+    }));
   };
 
-  // Функция для сортировки комментариев
+  // Функция для смены сортировки
   const sortBy = (key) => {
     if (sortKey.value === key) {
       sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
@@ -88,18 +97,8 @@
       sortKey.value = key;
       sortOrder.value = 'asc';
     }
-    fetchComments(page.value);
+    fetchComments(page.value); // Перезагружаем комментарии с новой сортировкой
   };
-
-  // Сортировка комментариев по ключу и порядку
-  const sortedComments = computed(() => {
-    return [...comments.value].sort((a, b) => {
-      const modifier = sortOrder.value === 'asc' ? 1 : -1;
-      if (a[sortKey.value] < b[sortKey.value]) return -1 * modifier;
-      if (a[sortKey.value] > b[sortKey.value]) return 1 * modifier;
-      return 0;
-    });
-  });
 
   // Определение иконки для сортировки
   const sortIcon = (key) => {
@@ -122,8 +121,11 @@
   });
   </script>
 
-  <style scoped>
 
+
+
+
+  <style scoped>
   table {
     width: 100%;
   }

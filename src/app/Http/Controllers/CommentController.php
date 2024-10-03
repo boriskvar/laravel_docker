@@ -12,9 +12,21 @@ class CommentController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
-        $comments = Comment::whereNull('parent_id')->with('replies')->get();
+        // Получаем параметры сортировки и пагинации из запроса
+        $sort = $request->input('sort', 'created_at');  // Поле для сортировки, по умолчанию 'created_at'
+        $order = $request->input('order', 'desc');      // Порядок сортировки, по умолчанию 'desc'
+        $perPage = $request->input('per_page', 25);     // Количество элементов на страницу, по умолчанию 25
+        $page = $request->input('page', 1);             // Текущая страница
+
+        // Выполняем запрос к базе данных с сортировкой и пагинацией
+        $comments = Comment::whereNull('parent_id')
+            ->with('replies')
+            ->orderBy($sort, $order)  // Сортируем по полю (например, created_at), в порядке (asc или desc)
+            ->paginate($perPage, ['*'], 'page', $page); // Пагинация
+
+        // Возвращаем результат в формате JSON
         return response()->json($comments);
     }
 
