@@ -42,7 +42,7 @@
   import { ref, onMounted } from 'vue';
   import Pagination from './Pagination.vue'; // Импортируем компонент пагинации
 
-  const API_URL = 'https://spa-comments/api/comments'; // URL API
+  const API_URL = 'http://localhost/api/comments'; // URL API
 
   // Состояние для комментариев, сортировки и пагинации
   const comments = ref([]);
